@@ -1,0 +1,113 @@
+mql5
+/*
+Program Name: Quantum RSI Master
+Developer's Site: forexroboteasy.com
+Developer's Name: Forex Robot Easy Team
+*/
+
+// Include necessary libraries
+#include <Trade\Trade.mqh>
+#include <MovingAverages\MovingAverages.mqh>
+
+// Define input parameters
+input double LotSize = 0.01; // Trading lot size
+input int StopLoss = 100; // Stop loss in points
+input int TakeProfit = 200; // Take profit in points
+input int RSI_Period = 14; // RSI period for trend identification
+
+// Define global variables
+CTrade trade; // Trade object
+CMovingAverages ma; // Moving averages object
+
+// Define the OnTick function
+void OnTick()
+{
+    // Get the RSI value
+    double rsi = iRSI(_Symbol, _Period, RSI_Period, PRICE_CLOSE, 0);
+
+    // Check if the RSI is above 70, indicating an overbought market
+    if (rsi > 70)
+    {
+        // Check if there is an open buy position
+        if (trade.PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
+        {
+            // Close the buy position
+            trade.PositionClose(_Symbol);
+        }
+
+        // Check if there is no open sell position
+        if (trade.PositionGetInteger(POSITION_TYPE) != POSITION_TYPE_SELL)
+        {
+            // Open a sell position
+            trade.PositionOpen(_Symbol, POSITION_TYPE_SELL, LotSize, 0, StopLoss, TakeProfit);
+        }
+    }
+
+    // Check if the RSI is below 30, indicating an oversold market
+    if (rsi < 30)
+    {
+        // Check if there is an open sell position
+        if (trade.PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
+        {
+            // Close the sell position
+            trade.PositionClose(_Symbol);
+        }
+
+        // Check if there is no open buy position
+        if (trade.PositionGetInteger(POSITION_TYPE) != POSITION_TYPE_BUY)
+        {
+            // Open a buy position
+            trade.PositionOpen(_Symbol, POSITION_TYPE_BUY, LotSize, 0, StopLoss, TakeProfit);
+        }
+    }
+
+    // Check if there is an open position
+    if (trade.PositionGetInteger(POSITION_TYPE) != POSITION_TYPE_NONE)
+    {
+        // Get the moving average value
+        double maValue = ma.iMA(_Symbol, _Period, 50, 0, MODE_SMA, PRICE_CLOSE, 0);
+
+        // Check if the current price is above the moving average
+        if (Bid > maValue)
+        {
+            // Check if the open position is a sell position
+            if (trade.PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
+            {
+                // Close the sell position
+                trade.PositionClose(_Symbol);
+            }
+        }
+
+        // Check if the current price is below the moving average
+        if (Bid < maValue)
+        {
+            // Check if the open position is a buy position
+            if (trade.PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
+            {
+                // Close the buy position
+                trade.PositionClose(_Symbol);
+            }
+        }
+    }
+}
+
+// Define the OnInit function
+void OnInit()
+{
+    // Initialize the trade object
+    trade.SetExpertMagicNumber(123456); // Set expert magic number
+    trade.SetExpertSuffix('QuantumRSI'); // Set expert suffix
+    trade.SetExpertStopLoss(StopLoss); // Set expert stop loss
+    trade.SetExpertTakeProfit(TakeProfit); // Set expert take profit
+
+    // Initialize the moving averages object
+    ma.SetExpertSuffix('QuantumRSI'); // Set expert suffix
+}
+
+// Define the OnDeinit function
+void OnDeinit(const int reason)
+{
+    // Clean up the trade object
+    trade.CleanUp();
+}
+
